@@ -8,12 +8,19 @@ import type { SpotifyOAuthEndpoints } from "../../src/auth/deps.js";
  * /me identity call.
  */
 
+type StubHandler = (req: express.Request, res: express.Response) => void;
+
 export interface FakeSpotify {
   endpoints: SpotifyOAuthEndpoints;
   baseUrl: string;
   /** Codes the fake will accept, mapped to the user they represent. */
   issueCode(code: string, user: { id: string; display_name?: string }): void;
   tokenExchanges: Array<{ code: string; authorization: string | undefined }>;
+  /** Stub an API route, e.g. stub("GET", "/v1/search", { tracks: {...} }). */
+  stub(method: string, path: string, body: unknown, status?: number): void;
+  stubFn(method: string, path: string, handler: StubHandler): void;
+  /** Requests seen by stubbed routes, `${method} ${originalUrl}`. */
+  apiRequests: string[];
   close(): Promise<void>;
 }
 
@@ -22,7 +29,19 @@ export async function startFakeSpotify(): Promise<FakeSpotify> {
   const codes = new Map<string, { id: string; display_name?: string }>();
   const accessTokens = new Map<string, { id: string; display_name?: string }>();
   const tokenExchanges: FakeSpotify["tokenExchanges"] = [];
+  const stubs = new Map<string, StubHandler>();
+  const apiRequests: string[] = [];
   let counter = 0;
+
+  app.use("/v1", express.json(), (req, res, next) => {
+    const stubbed = stubs.get(`${req.method} /v1${req.path}`);
+    if (!stubbed) {
+      next();
+      return;
+    }
+    apiRequests.push(`${req.method} ${req.originalUrl}`);
+    stubbed(req, res);
+  });
 
   app.post("/api/token", express.urlencoded({ extended: false }), (req, res) => {
     const code = req.body.code as string;
@@ -71,6 +90,12 @@ export async function startFakeSpotify(): Promise<FakeSpotify> {
     },
     issueCode: (code, user) => codes.set(code, user),
     tokenExchanges,
+    stub: (method, path, body, status = 200) =>
+      stubs.set(`${method.toUpperCase()} ${path}`, (_req, res) => {
+        res.status(status).json(body);
+      }),
+    stubFn: (method, path, handler) => stubs.set(`${method.toUpperCase()} ${path}`, handler),
+    apiRequests,
     close: () =>
       new Promise((resolve, reject) =>
         server.close((err) => (err ? reject(err) : resolve())),

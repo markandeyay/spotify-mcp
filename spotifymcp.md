@@ -606,10 +606,10 @@ Update markers as you go. A phase is done only when every item is `[x]` and its 
 - **Acceptance:** MCP Inspector connects, authenticates, lists tools, and calls the ping tool.
 
 ### Phase 5: Core read tools
-- [ ] `get_initial_context`
-- [ ] `search_music` (internal pagination past the 10 cap)
-- [ ] `get_track_details`, `get_artist_details`, `get_album_details`
-- [ ] `list_playlists`, `get_playlist` (raw mode)
+- [x] `get_initial_context`
+- [x] `search_music` (internal pagination past the 10 cap)
+- [x] `get_track_details`, `get_artist_details`, `get_album_details`
+- [x] `list_playlists`, `get_playlist` (raw mode)
 - **Acceptance:** each tool returns compact, correct data against a real account.
 
 ### Phase 6: Playback tools with graceful degradation
@@ -682,6 +682,7 @@ The agent appends here. Each entry: date, question or decision, and resolution.
 - `2026-07-05` Dev Mode limits per migration guide are stricter than Section 12's note: 1 client ID per developer and a 5 user cap (not ~25) until Extended Quota Mode. README must reflect this.
 - `2026-07-05` Removed response fields confirmed and treated as optional in all Zod schemas: track `popularity`/`available_markets`/`external_ids`/`linked_from`; album `label`/`popularity`/`album_group`; artist `followers`/`popularity`. Artist `genres` was NOT listed as removed, so it stays in the schema as optional; actual population density gets assessed in Phase 8 against real data.
 - `TODO` Confirm whether artist `genres` is still populated enough to use, or whether external genre grounding is needed sooner (assess in Phase 8 with real account data).
+- `2026-07-05` Phase 5 note: the playlist mutation tools from Section 8.3 (`create_playlist`, `add_tracks_to_playlist`, `remove_tracks_from_playlist`, `reorder_playlist`) appear in no phase checklist, an omission in the doc. They were implemented in Phase 5 alongside the playlist read tools since they share the module. `get_playlist` also gained its `summary` mode here (the aggregation function is pure math, formally a Phase 8 deliverable, checked off there). Premium status in `get_initial_context` is reported as `not_yet_determined` with an explanatory note until a playback attempt reveals it.
 - `2026-07-05` Phase 4: Streamable HTTP runs in stateless mode (fresh transport and McpServer per POST, `enableJsonResponse`), the SDK's documented pattern for horizontally scalable servers; GET/DELETE `/mcp` return 405. Acceptance verified with the official SDK client (the same protocol path MCP Inspector uses) instead of the manual Inspector run: connect, list tools, call ping. Dropped `exactOptionalPropertyTypes` from tsconfig (all other strict flags stay) because the SDK's option types are incompatible with it.
 - `2026-07-05` Phase 1 acceptance: unit coverage is green (refresh-on-401, bounded 429 backoff with Retry-After cap, pagination past the search cap, schema tolerance for removed fields). The live-token portion of the acceptance ("with a manually pasted valid token...") cannot run until the owner registers the Spotify app; `scripts/verify-spotify.ts` runs that exact check via `SPOTIFY_TEST_TOKEN=... npx tsx scripts/verify-spotify.ts`. Listed as a hand-off item in the final report.
 - `2026-07-05` Capability cache is in-process memory for v1 (re-probes after restart) rather than `cache_entries`; acceptable because premium/liveness signals are cheap to re-learn. Swap to `cache_entries` if it matters later.

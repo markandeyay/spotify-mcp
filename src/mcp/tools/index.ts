@@ -1,12 +1,14 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ToolContext } from "../tool-context.js";
+import { registerContextTools } from "./context.js";
+import { registerSearchTools } from "./search.js";
+import { registerInfoTools } from "./info.js";
+import { registerPlaylistTools } from "./playlists.js";
 
-/**
- * Central tool registry. Each module registers one Section 8 tool group;
- * modules are added phase by phase.
- */
-
+/** Central tool registry; one module per Section 8 tool group. */
 export function registerAllTools(server: McpServer, ctx: ToolContext): void {
-  void server;
-  void ctx;
+  registerContextTools(server, ctx);
+  registerSearchTools(server, ctx);
+  registerInfoTools(server, ctx);
+  registerPlaylistTools(server, ctx);
 }
