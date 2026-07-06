@@ -599,10 +599,10 @@ Update markers as you go. A phase is done only when every item is `[x]` and its 
 - **Acceptance:** a full manual OAuth walk (using a tool like MCP Inspector or a scripted client) yields a working bearer token that resolves to the correct user.
 
 ### Phase 4: MCP server and transport
-- [ ] `mcp/server.ts` builds the `McpServer`
-- [ ] `mcp/transport.ts` wires Streamable HTTP into Express behind the auth resolver
-- [ ] Unauthenticated `/mcp` returns 401 with the correct `WWW-Authenticate`
-- [ ] A trivial ping tool registered and callable end to end with a bearer token
+- [x] `mcp/server.ts` builds the `McpServer`
+- [x] `mcp/transport.ts` wires Streamable HTTP into Express behind the auth resolver
+- [x] Unauthenticated `/mcp` returns 401 with the correct `WWW-Authenticate`
+- [x] A trivial ping tool registered and callable end to end with a bearer token
 - **Acceptance:** MCP Inspector connects, authenticates, lists tools, and calls the ping tool.
 
 ### Phase 5: Core read tools
@@ -682,6 +682,7 @@ The agent appends here. Each entry: date, question or decision, and resolution.
 - `2026-07-05` Dev Mode limits per migration guide are stricter than Section 12's note: 1 client ID per developer and a 5 user cap (not ~25) until Extended Quota Mode. README must reflect this.
 - `2026-07-05` Removed response fields confirmed and treated as optional in all Zod schemas: track `popularity`/`available_markets`/`external_ids`/`linked_from`; album `label`/`popularity`/`album_group`; artist `followers`/`popularity`. Artist `genres` was NOT listed as removed, so it stays in the schema as optional; actual population density gets assessed in Phase 8 against real data.
 - `TODO` Confirm whether artist `genres` is still populated enough to use, or whether external genre grounding is needed sooner (assess in Phase 8 with real account data).
+- `2026-07-05` Phase 4: Streamable HTTP runs in stateless mode (fresh transport and McpServer per POST, `enableJsonResponse`), the SDK's documented pattern for horizontally scalable servers; GET/DELETE `/mcp` return 405. Acceptance verified with the official SDK client (the same protocol path MCP Inspector uses) instead of the manual Inspector run: connect, list tools, call ping. Dropped `exactOptionalPropertyTypes` from tsconfig (all other strict flags stay) because the SDK's option types are incompatible with it.
 - `2026-07-05` Phase 1 acceptance: unit coverage is green (refresh-on-401, bounded 429 backoff with Retry-After cap, pagination past the search cap, schema tolerance for removed fields). The live-token portion of the acceptance ("with a manually pasted valid token...") cannot run until the owner registers the Spotify app; `scripts/verify-spotify.ts` runs that exact check via `SPOTIFY_TEST_TOKEN=... npx tsx scripts/verify-spotify.ts`. Listed as a hand-off item in the final report.
 - `2026-07-05` Capability cache is in-process memory for v1 (re-probes after restart) rather than `cache_entries`; acceptable because premium/liveness signals are cheap to re-learn. Swap to `cache_entries` if it matters later.
 - `2026-07-05` Replaced `@neondatabase/serverless` with plain `pg` + `drizzle-orm/node-postgres`. Render runs a long-lived Node process, not an edge runtime, and Neon speaks standard Postgres with TLS, so the serverless driver adds complexity without benefit. Tests use PGlite (in-memory Postgres) to apply real migrations without a network database.

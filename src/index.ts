@@ -13,6 +13,10 @@ import { authorizeRouter } from "./auth/authorize.js";
 import { callbackRouter } from "./auth/callback.js";
 import { tokenRouter } from "./auth/token.js";
 import { requireAuth } from "./auth/resolver.js";
+import { CapabilityRegistry } from "./spotify/capabilities.js";
+import { createDbCache } from "./cache/cache.js";
+import { mcpMethodNotAllowed, mcpPostHandler } from "./mcp/transport.js";
+import type { ToolContextDeps } from "./mcp/tool-context.js";
 
 /**
  * Entry point: builds the Express app, mounts routes, starts the server.
@@ -74,6 +78,20 @@ export function createApp(deps: AppDeps): Express {
       display_name: req.user!.displayName,
     });
   });
+
+  const toolDeps: ToolContextDeps = {
+    db: deps.db,
+    config: deps.config,
+    logger: deps.logger,
+    encryptionKey: authDeps.encryptionKey,
+    spotify: authDeps.spotify,
+    capabilities: new CapabilityRegistry(),
+    cache: createDbCache(deps.db),
+    ...(deps.fetchImpl ? { fetchImpl: deps.fetchImpl } : {}),
+  };
+  app.post("/mcp", express.json(), requireAuth(authDeps), mcpPostHandler(toolDeps));
+  app.get("/mcp", requireAuth(authDeps), mcpMethodNotAllowed());
+  app.delete("/mcp", requireAuth(authDeps), mcpMethodNotAllowed());
 
   return app;
 }
