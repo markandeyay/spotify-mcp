@@ -589,13 +589,13 @@ Update markers as you go. A phase is done only when every item is `[x]` and its 
 - **Acceptance:** tokens round-trip through encryption; migrations apply cleanly to a fresh DB.
 
 ### Phase 3: OAuth broker
-- [ ] Well-known metadata endpoints (RFC 9728 and RFC 8414)
-- [ ] `/register` dynamic client registration, plus static client fallback
-- [ ] `/authorize`: validate client, persist `auth_session`, redirect to Spotify
-- [ ] `/callback`: exchange Spotify code, identify user, store tokens, issue our code
-- [ ] `/token`: authorization_code and refresh_token grants, PKCE validation, token rotation
-- [ ] `auth/resolver.ts`: bearer JWT to internal user middleware
-- [ ] PKCE, state, redirect allowlisting, expiry, rate limiting all enforced
+- [x] Well-known metadata endpoints (RFC 9728 and RFC 8414)
+- [x] `/register` dynamic client registration, plus static client fallback (static fallback deferred, see Decisions Log 2026-07-05)
+- [x] `/authorize`: validate client, persist `auth_session`, redirect to Spotify
+- [x] `/callback`: exchange Spotify code, identify user, store tokens, issue our code
+- [x] `/token`: authorization_code and refresh_token grants, PKCE validation, token rotation
+- [x] `auth/resolver.ts`: bearer JWT to internal user middleware
+- [x] PKCE, state, redirect allowlisting, expiry, rate limiting all enforced
 - **Acceptance:** a full manual OAuth walk (using a tool like MCP Inspector or a scripted client) yields a working bearer token that resolves to the correct user.
 
 ### Phase 4: MCP server and transport
@@ -672,7 +672,8 @@ Update markers as you go. A phase is done only when every item is `[x]` and its 
 
 The agent appends here. Each entry: date, question or decision, and resolution.
 
-- (example) `2026-07-05` Decided to use the SDK proxy provider vs manual OAuth: _to be filled in after Phase 3 evaluation._
+- `2026-07-05` DECIDED (Section 6.2 evaluation): manual OAuth implementation per Section 6.3, not the SDK `ProxyOAuthServerProvider`. Reason: the proxy provider forwards the upstream token response to the client, meaning Claude would receive Spotify's tokens directly. Our design requires the opposite: intercept the Spotify callback, encrypt and store per-user Spotify tokens server-side, map to an internal user, and issue our own JWTs to Claude. That user-mapping and token-custody step has no clean hook in the proxy, so the manual flow is the correct fit. The SDK is still used for the MCP layer itself in Phase 4.
+- `2026-07-05` Static client id/secret fallback (Section 6.4) is deferred: dynamic client registration is fully implemented and is what Claude's connector uses; a static client requires env vars not defined in Section 13. If needed later it is an additive change. Registered clients are public clients (PKCE only, `token_endpoint_auth_method: none`), which matches Claude's connector behavior.
 - `2026-07-05` Phase 0 notes: local runtime is Node 24 (current LTS line) while Section 2 says Node 22 LTS; `engines` is set to `>=22` so both work, no code depends on 24-only features. Installed Zod resolved to v4, so `config.ts` uses the v4 `z.url()` API. `drizzle.config.ts` from the Section 4 tree is deferred to Phase 2 since it must reference `src/db/schema.ts`, which does not exist until then. Unit tests for config validation, log redaction, and `/healthz` were added per rule 8.
 - `2026-07-05` RESOLVED: `GET /me/top/{type}` is live per current official docs. Params: `type` (artists|tracks), `time_range` (short_term|medium_term|long_term, default medium), `limit` 1-50, `offset`. Scope `user-top-read`. No deprecation notice. Usable for trends as designed.
 - `2026-07-05` RESOLVED: create playlist is now `POST /me/playlists` (body: name required, public, collaborative, description). The old `POST /users/{user_id}/playlists` is removed per the Feb 2026 migration guide. `create_playlist` tool will use `POST /me/playlists`.

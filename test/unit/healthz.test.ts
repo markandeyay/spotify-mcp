@@ -1,31 +1,19 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import type { Server } from "node:http";
-import { createApp } from "../../src/index.js";
+import { startTestApp, type TestApp } from "../helpers/test-app.js";
 
 describe("GET /healthz", () => {
-  let server: Server;
-  let baseUrl: string;
+  let app: TestApp;
 
   beforeAll(async () => {
-    const app = createApp();
-    await new Promise<void>((resolve) => {
-      server = app.listen(0, () => resolve());
-    });
-    const address = server.address();
-    if (address === null || typeof address === "string") {
-      throw new Error("expected a TCP address");
-    }
-    baseUrl = `http://127.0.0.1:${address.port}`;
+    app = await startTestApp();
   });
 
   afterAll(async () => {
-    await new Promise<void>((resolve, reject) => {
-      server.close((err) => (err ? reject(err) : resolve()));
-    });
+    await app.close();
   });
 
   it("returns 200 with an ok body", async () => {
-    const res = await fetch(`${baseUrl}/healthz`);
+    const res = await fetch(`${app.baseUrl}/healthz`);
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ status: "ok" });
   });
