@@ -574,11 +574,11 @@ Update markers as you go. A phase is done only when every item is `[x]` and its 
 - **Acceptance:** server boots, `/healthz` responds, missing env produces a clear error.
 
 ### Phase 1: Spotify client and capability verification
-- [ ] `spotify/types.ts` Zod schemas (fields the API still returns, everything droppable optional)
-- [ ] `spotify/client.ts`: fetch wrapper with refresh, single retry on 401, 429 backoff
-- [ ] `spotify/endpoints.ts`: typed functions only for verified-alive endpoints
-- [ ] `spotify/capabilities.ts`: premium detection, active-device check, endpoint-liveness cache
-- [ ] Verify each endpoint in Section 12 against live docs; update the Decisions Log with findings
+- [x] `spotify/types.ts` Zod schemas (fields the API still returns, everything droppable optional)
+- [x] `spotify/client.ts`: fetch wrapper with refresh, single retry on 401, 429 backoff
+- [x] `spotify/endpoints.ts`: typed functions only for verified-alive endpoints
+- [x] `spotify/capabilities.ts`: premium detection, active-device check, endpoint-liveness cache
+- [x] Verify each endpoint in Section 12 against live docs; update the Decisions Log with findings
 - **Acceptance:** with a manually pasted valid token, the client can fetch `/me`, search, and read a playlist, and correctly reports premium and device status.
 
 ### Phase 2: Data layer and encryption
@@ -674,9 +674,16 @@ The agent appends here. Each entry: date, question or decision, and resolution.
 
 - (example) `2026-07-05` Decided to use the SDK proxy provider vs manual OAuth: _to be filled in after Phase 3 evaluation._
 - `2026-07-05` Phase 0 notes: local runtime is Node 24 (current LTS line) while Section 2 says Node 22 LTS; `engines` is set to `>=22` so both work, no code depends on 24-only features. Installed Zod resolved to v4, so `config.ts` uses the v4 `z.url()` API. `drizzle.config.ts` from the Section 4 tree is deferred to Phase 2 since it must reference `src/db/schema.ts`, which does not exist until then. Unit tests for config validation, log redaction, and `/healthz` were added per rule 8.
-- `TODO` Confirm `/me/top/{type}` is still live and usable for trends.
-- `TODO` Confirm the current create-playlist endpoint and shape.
-- `TODO` Confirm whether artist `genres` is still populated enough to use, or whether external genre grounding is needed sooner.
+- `2026-07-05` RESOLVED: `GET /me/top/{type}` is live per current official docs. Params: `type` (artists|tracks), `time_range` (short_term|medium_term|long_term, default medium), `limit` 1-50, `offset`. Scope `user-top-read`. No deprecation notice. Usable for trends as designed.
+- `2026-07-05` RESOLVED: create playlist is now `POST /me/playlists` (body: name required, public, collaborative, description). The old `POST /users/{user_id}/playlists` is removed per the Feb 2026 migration guide. `create_playlist` tool will use `POST /me/playlists`.
+- `2026-07-05` Verified against the official Feb 2026 migration guide (`/documentation/web-api/tutorials/february-2026-migration-guide`): playlist item endpoints renamed to `/playlists/{id}/items` with `track` field renamed to `item` inside playlist items; search `limit` max 10 default 5; generic library endpoints confirmed as `PUT /me/library` and `DELETE /me/library` with body `{ "uris": [...] }` plus `GET /me/library/contains`; batch fetch endpoints (`GET /tracks?ids=`, `/artists?ids=`, `/albums?ids=`, etc.) removed; `GET /artists/{id}/top-tracks`, `/browse/*`, `GET /markets`, `GET /users/{id}` removed. `GET /me/tracks` (list saved) and `GET /me/player/recently-played` remain live. Playlist `items` contents are only returned for playlists the user owns or collaborates on.
+- `2026-07-05` MATERIAL DOC CORRECTION: `GET /me` no longer returns `product`, `country`, `email`, `explicit_content`, or `followers` (Feb 2026 removal). Section 7.2's plan to detect Premium from `/me` cannot work. Fix: premium status starts unknown and is inferred lazily; when a playback-control call returns 403 with a premium-required reason, capabilities records `premium=false` and caches it; a successful playback-control call records `premium=true`. Playback tools phrase the unknown state honestly instead of guessing.
+- `2026-07-05` Dev Mode limits per migration guide are stricter than Section 12's note: 1 client ID per developer and a 5 user cap (not ~25) until Extended Quota Mode. README must reflect this.
+- `2026-07-05` Removed response fields confirmed and treated as optional in all Zod schemas: track `popularity`/`available_markets`/`external_ids`/`linked_from`; album `label`/`popularity`/`album_group`; artist `followers`/`popularity`. Artist `genres` was NOT listed as removed, so it stays in the schema as optional; actual population density gets assessed in Phase 8 against real data.
+- `TODO` Confirm whether artist `genres` is still populated enough to use, or whether external genre grounding is needed sooner (assess in Phase 8 with real account data).
+- `2026-07-05` Phase 1 acceptance: unit coverage is green (refresh-on-401, bounded 429 backoff with Retry-After cap, pagination past the search cap, schema tolerance for removed fields). The live-token portion of the acceptance ("with a manually pasted valid token...") cannot run until the owner registers the Spotify app; `scripts/verify-spotify.ts` runs that exact check via `SPOTIFY_TEST_TOKEN=... npx tsx scripts/verify-spotify.ts`. Listed as a hand-off item in the final report.
+- `2026-07-05` Capability cache is in-process memory for v1 (re-probes after restart) rather than `cache_entries`; acceptable because premium/liveness signals are cheap to re-learn. Swap to `cache_entries` if it matters later.
+- `2026-07-05` Replaced `@neondatabase/serverless` with plain `pg` + `drizzle-orm/node-postgres`. Render runs a long-lived Node process, not an edge runtime, and Neon speaks standard Postgres with TLS, so the serverless driver adds complexity without benefit. Tests use PGlite (in-memory Postgres) to apply real migrations without a network database.
 
 ---
 
