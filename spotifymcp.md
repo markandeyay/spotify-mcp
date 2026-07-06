@@ -620,9 +620,9 @@ Update markers as you go. A phase is done only when every item is `[x]` and its 
 - **Acceptance:** playback works on a Premium account with an active device; on a free account or with no device, tools respond helpfully.
 
 ### Phase 7: Library and history tools
-- [ ] `get_saved_tracks`, `get_recently_played`
-- [ ] `save_items`, `remove_items` via generic library endpoints
-- [ ] Snapshot capture wired into recently-played reads
+- [x] `get_saved_tracks`, `get_recently_played`
+- [x] `save_items`, `remove_items` via generic library endpoints
+- [x] Snapshot capture wired into recently-played reads
 - **Acceptance:** saving and removing work; snapshots accumulate rows.
 
 ### Phase 8: Intelligence layer
