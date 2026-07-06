@@ -108,6 +108,38 @@ describe("SpotifyClient", () => {
     expect(fetchImpl).toHaveBeenCalledTimes(3);
   });
 
+  it("recovers a concurrent burst once the rate-limit window passes", async () => {
+    // Simulated load: the first 5 attempts land inside a rate-limit window
+    // and get 429; everything after it succeeds.
+    let attempts = 0;
+    const sleeps: number[] = [];
+    const fetchImpl = vi.fn().mockImplementation(async () => {
+      attempts += 1;
+      return attempts <= 5
+        ? jsonResponse(429, {}, { "Retry-After": "2" })
+        : jsonResponse(200, { ok: true });
+    });
+    const client = new SpotifyClient({
+      tokenProvider: tokenProvider(),
+      logger: silentLogger,
+      apiBaseUrl: "https://fake.spotify.test/v1",
+      fetchImpl: fetchImpl as typeof fetch,
+      sleep: async (ms) => {
+        sleeps.push(ms);
+      },
+    });
+
+    const results = await Promise.all(
+      Array.from({ length: 5 }, () => client.request<{ ok: boolean }>("/search")),
+    );
+
+    expect(results).toEqual(Array.from({ length: 5 }, () => ({ ok: true })));
+    // Every retry honored Retry-After, and the total attempt count stayed
+    // bounded (at most 3 per request) instead of hammering the API.
+    expect(sleeps.every((ms) => ms === 2000)).toBe(true);
+    expect(fetchImpl.mock.calls.length).toBeLessThanOrEqual(15);
+  });
+
   it("caps a huge Retry-After at maxRetryAfterSeconds", async () => {
     const sleeps: number[] = [];
     const fetchImpl = vi

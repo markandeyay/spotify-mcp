@@ -9,6 +9,7 @@ import {
   saveToLibrary,
 } from "../../spotify/endpoints.js";
 import { captureRecentlyPlayed } from "../../intelligence/snapshots.js";
+import { cacheKeys } from "../../cache/cache.js";
 
 /**
  * Library and history tools (Section 8.5). Recently-played reads feed the
@@ -92,6 +93,7 @@ export function registerLibraryTools(server: McpServer, ctx: ToolContext): void 
     async ({ uris }) =>
       runTool(ctx, "save_items", async () => {
         await saveToLibrary(ctx.client, uris);
+        await ctx.cache.delete(cacheKeys.libraryScan(ctx.user.id));
         return ok({ saved: uris.length, uris });
       }),
   );
@@ -105,6 +107,7 @@ export function registerLibraryTools(server: McpServer, ctx: ToolContext): void 
     async ({ uris }) =>
       runTool(ctx, "remove_items", async () => {
         await removeFromLibrary(ctx.client, uris);
+        await ctx.cache.delete(cacheKeys.libraryScan(ctx.user.id));
         return ok({ removed: uris.length, uris });
       }),
   );

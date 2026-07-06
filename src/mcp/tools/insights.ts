@@ -22,7 +22,7 @@ import {
   type RecentlyPlayedEntry,
 } from "../../intelligence/snapshots.js";
 import type { SavedTrack, Artist } from "../../spotify/types.js";
-import { TTL } from "../../cache/cache.js";
+import { cacheKeys, TTL } from "../../cache/cache.js";
 
 /**
  * Insight tools (Section 8.6): the differentiators. Aggregation is measured
@@ -34,7 +34,7 @@ import { TTL } from "../../cache/cache.js";
 const LIBRARY_SCAN_CAP = 500;
 
 async function scanSavedTracks(ctx: ToolContext): Promise<{ saved: SavedTrack[]; scannedAll: boolean; total: number | null }> {
-  const cacheKey = `user:${ctx.user.id}:library-scan`;
+  const cacheKey = cacheKeys.libraryScan(ctx.user.id);
   const cached = await ctx.cache.get<{ saved: SavedTrack[]; scannedAll: boolean; total: number | null }>(cacheKey);
   if (cached) return cached;
 

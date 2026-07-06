@@ -12,7 +12,7 @@ import {
   reorderPlaylistItems,
 } from "../../spotify/endpoints.js";
 import { summarizePlaylistTracks } from "../../intelligence/summarize-playlist.js";
-import { TTL } from "../../cache/cache.js";
+import { cacheKeys, TTL } from "../../cache/cache.js";
 
 /** Fan-out cap: playlist reads walk 50-item pages; cap keeps costs bounded. */
 const PLAYLIST_ITEMS_CAP = 200;
@@ -58,7 +58,7 @@ export function registerPlaylistTools(server: McpServer, ctx: ToolContext): void
     async ({ id, mode }) =>
       runTool(ctx, "get_playlist", async () => {
         const meta = await getPlaylist(ctx.client, id);
-        const cacheKey = `user:${ctx.user.id}:playlist:${id}:items`;
+        const cacheKey = cacheKeys.playlistItems(ctx.user.id, id);
         let items = await ctx.cache.get<Awaited<ReturnType<typeof getPlaylistItems>>>(cacheKey);
         if (!items) {
           items = await getPlaylistItems(ctx.client, id, { maxItems: PLAYLIST_ITEMS_CAP });
@@ -134,6 +134,7 @@ export function registerPlaylistTools(server: McpServer, ctx: ToolContext): void
     async ({ playlist_id, track_uris }) =>
       runTool(ctx, "add_tracks_to_playlist", async () => {
         await addPlaylistItems(ctx.client, playlist_id, track_uris);
+        await ctx.cache.delete(cacheKeys.playlistItems(ctx.user.id, playlist_id));
         const meta = await getPlaylist(ctx.client, playlist_id);
         return ok({
           added: track_uris.length,
@@ -155,6 +156,7 @@ export function registerPlaylistTools(server: McpServer, ctx: ToolContext): void
     async ({ playlist_id, track_uris }) =>
       runTool(ctx, "remove_tracks_from_playlist", async () => {
         await removePlaylistItems(ctx.client, playlist_id, track_uris);
+        await ctx.cache.delete(cacheKeys.playlistItems(ctx.user.id, playlist_id));
         const meta = await getPlaylist(ctx.client, playlist_id);
         return ok({
           removed: track_uris.length,
@@ -186,6 +188,7 @@ export function registerPlaylistTools(server: McpServer, ctx: ToolContext): void
           insertBefore: insert_before,
           rangeLength: range_length,
         });
+        await ctx.cache.delete(cacheKeys.playlistItems(ctx.user.id, playlist_id));
         return ok({ reordered: true, playlist_id, range_start, insert_before, range_length });
       }),
   );

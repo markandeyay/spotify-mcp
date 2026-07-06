@@ -10,9 +10,18 @@ import { cacheEntries } from "../db/schema.js";
 export interface Cache {
   get<T>(key: string): Promise<T | undefined>;
   set(key: string, value: unknown, ttlSeconds: number, userId?: string): Promise<void>;
+  /** Invalidate one key, e.g. after a mutation makes the cached read stale. */
+  delete(key: string): Promise<void>;
   /** Opportunistic cleanup of expired rows; call occasionally, not per read. */
   sweep(): Promise<void>;
 }
+
+/** Builders for keys that both readers and invalidating mutators need. */
+export const cacheKeys = {
+  playlistItems: (userId: string, playlistId: string) =>
+    `user:${userId}:playlist:${playlistId}:items`,
+  libraryScan: (userId: string) => `user:${userId}:library-scan`,
+} as const;
 
 export function createDbCache(db: Db, now: () => Date = () => new Date()): Cache {
   return {
@@ -42,6 +51,10 @@ export function createDbCache(db: Db, now: () => Date = () => new Date()): Cache
         .insert(cacheEntries)
         .values(values)
         .onConflictDoUpdate({ target: cacheEntries.cacheKey, set: values });
+    },
+
+    async delete(key: string): Promise<void> {
+      await db.delete(cacheEntries).where(eq(cacheEntries.cacheKey, key));
     },
 
     async sweep(): Promise<void> {
