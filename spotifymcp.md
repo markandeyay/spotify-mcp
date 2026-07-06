@@ -626,11 +626,11 @@ Update markers as you go. A phase is done only when every item is `[x]` and its 
 - **Acceptance:** saving and removing work; snapshots accumulate rows.
 
 ### Phase 8: Intelligence layer
-- [ ] `summarize_playlist`
-- [ ] `summarize_library`
-- [ ] `summarize_listening_trends`
-- [ ] `find_library_gaps`
-- [ ] Clear labeling of measured vs inferred in every output
+- [x] `summarize_playlist`
+- [x] `summarize_library`
+- [x] `summarize_listening_trends`
+- [x] `find_library_gaps`
+- [x] Clear labeling of measured vs inferred in every output
 - **Acceptance:** summaries return accurate server-computed stats; trends degrade gracefully when history is thin.
 
 ### Phase 9: Caching and rate limiting
@@ -686,6 +686,7 @@ The agent appends here. Each entry: date, question or decision, and resolution.
 - `2026-07-05` Phase 4: Streamable HTTP runs in stateless mode (fresh transport and McpServer per POST, `enableJsonResponse`), the SDK's documented pattern for horizontally scalable servers; GET/DELETE `/mcp` return 405. Acceptance verified with the official SDK client (the same protocol path MCP Inspector uses) instead of the manual Inspector run: connect, list tools, call ping. Dropped `exactOptionalPropertyTypes` from tsconfig (all other strict flags stay) because the SDK's option types are incompatible with it.
 - `2026-07-05` Phase 1 acceptance: unit coverage is green (refresh-on-401, bounded 429 backoff with Retry-After cap, pagination past the search cap, schema tolerance for removed fields). The live-token portion of the acceptance ("with a manually pasted valid token...") cannot run until the owner registers the Spotify app; `scripts/verify-spotify.ts` runs that exact check via `SPOTIFY_TEST_TOKEN=... npx tsx scripts/verify-spotify.ts`. Listed as a hand-off item in the final report.
 - `2026-07-05` Capability cache is in-process memory for v1 (re-probes after restart) rather than `cache_entries`; acceptable because premium/liveness signals are cheap to re-learn. Swap to `cache_entries` if it matters later.
+- `2026-07-06` Phase 8 notes: `summarize_listening_trends` combines two measured sources so it is useful from day one: (a) diffing stored recently-played snapshots across window halves (rising/fading/new artists, Herfindahl concentration change), which needs at least 10 stored plays over 2 capture days before it reports rather than inventing trends; (b) Spotify's own short_term vs long_term top-artists rankings, available immediately. Library-wide scans (`summarize_library`, `find_library_gaps`) are capped at the 500 most recent saves (10 requests) and cached per user; outputs disclose the cap when it truncates. `find_library_gaps` keeps candidate generation on the calling model and does only the measured cross-reference (URI check via `/me/library/contains`, name check against saved-track artists). The artist-genres density question (open TODO above) still needs real account data; moved to Phase 12 validation.
 - `2026-07-05` Replaced `@neondatabase/serverless` with plain `pg` + `drizzle-orm/node-postgres`. Render runs a long-lived Node process, not an edge runtime, and Neon speaks standard Postgres with TLS, so the serverless driver adds complexity without benefit. Tests use PGlite (in-memory Postgres) to apply real migrations without a network database.
 
 ---
