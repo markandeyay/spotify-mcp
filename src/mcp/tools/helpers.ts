@@ -9,6 +9,7 @@ import {
   SpotifyAuthError,
   SpotifyResponseShapeError,
 } from "../../util/errors.js";
+import { looksLikeRemovedEndpoint } from "../../spotify/capabilities.js";
 
 /**
  * Shared result and error mapping (Section 11). Raw Spotify error bodies
@@ -26,14 +27,27 @@ export function toolError(message: string): CallToolResult {
   return { content: [{ type: "text", text: message }], isError: true };
 }
 
+const ENDPOINT_REMOVED_MESSAGE =
+  "Spotify no longer offers this capability for third-party apps, so this feature is unavailable.";
+
 export async function runTool(
   ctx: ToolContext,
   toolName: string,
   fn: () => Promise<CallToolResult>,
 ): Promise<CallToolResult> {
+  // Detected-dead endpoints short-circuit (Section 7.2): degrade once and
+  // stop re-erroring against an endpoint Spotify has removed.
+  if (ctx.capabilities.isEndpointUnavailable(ctx.user.id, toolName)) {
+    return toolError(ENDPOINT_REMOVED_MESSAGE);
+  }
   try {
     return await fn();
   } catch (error) {
+    if (looksLikeRemovedEndpoint(error)) {
+      ctx.capabilities.markEndpointUnavailable(ctx.user.id, toolName);
+      ctx.logger.warn({ tool: toolName }, "endpoint appears removed by Spotify; degrading");
+      return toolError(ENDPOINT_REMOVED_MESSAGE);
+    }
     return mapError(ctx, toolName, error);
   }
 }
@@ -51,9 +65,7 @@ function mapError(ctx: ToolContext, toolName: string, error: unknown): CallToolR
     return toolError("Spotify is rate limiting right now. Wait a moment and try again.");
   }
   if (error instanceof EndpointUnavailableError) {
-    return toolError(
-      "Spotify no longer offers this capability for third-party apps, so this feature is unavailable.",
-    );
+    return toolError(ENDPOINT_REMOVED_MESSAGE);
   }
   if (error instanceof SpotifyResponseShapeError) {
     ctx.logger.warn({ tool: toolName, detail: error.message }, "unexpected spotify shape");

@@ -641,9 +641,9 @@ Update markers as you go. A phase is done only when every item is `[x]` and its 
 - **Acceptance:** repeated reads hit cache; a forced 429 backs off and recovers.
 
 ### Phase 10: Testing
-- [ ] Unit: encryption, token refresh logic, PKCE, aggregation math
-- [ ] Integration: OAuth flow with a mocked Spotify, tool calls with recorded fixtures
-- [ ] Error-path tests (no device, not premium, 429, removed endpoint)
+- [x] Unit: encryption, token refresh logic, PKCE, aggregation math
+- [x] Integration: OAuth flow with a mocked Spotify, tool calls with recorded fixtures
+- [x] Error-path tests (no device, not premium, 429, removed endpoint)
 - **Acceptance:** test suite green; error paths covered.
 
 ### Phase 11: Deployment
@@ -688,6 +688,7 @@ The agent appends here. Each entry: date, question or decision, and resolution.
 - `2026-07-05` Capability cache is in-process memory for v1 (re-probes after restart) rather than `cache_entries`; acceptable because premium/liveness signals are cheap to re-learn. Swap to `cache_entries` if it matters later.
 - `2026-07-06` Phase 8 notes: `summarize_listening_trends` combines two measured sources so it is useful from day one: (a) diffing stored recently-played snapshots across window halves (rising/fading/new artists, Herfindahl concentration change), which needs at least 10 stored plays over 2 capture days before it reports rather than inventing trends; (b) Spotify's own short_term vs long_term top-artists rankings, available immediately. Library-wide scans (`summarize_library`, `find_library_gaps`) are capped at the 500 most recent saves (10 requests) and cached per user; outputs disclose the cap when it truncates. `find_library_gaps` keeps candidate generation on the calling model and does only the measured cross-reference (URI check via `/me/library/contains`, name check against saved-track artists). The artist-genres density question (open TODO above) still needs real account data; moved to Phase 12 validation.
 - `2026-07-06` Phase 9 notes: most of the phase was built early (cache module in Phase 4, cache-first catalog/playlist/library-scan reads in Phases 5 and 8, fan-out caps with truncation notes in Phases 5 and 8, bounded 429 backoff in Phase 1). The gap this phase closed: mutations did not invalidate what they made stale, so `add/remove/reorder` playlist tools now delete the cached playlist items and `save_items`/`remove_items` delete the cached library scan (`Cache` gained `delete`, shared key builders in `cacheKeys`). Verified by tests: repeated reads hit cache once, mutation then re-read refetches, TTL expiry and sweep semantics, and a concurrent burst of 429s backs off per Retry-After and recovers within bounded attempts.
+- `2026-07-06` Phase 10 audit found and fixed a real gap, not just missing tests: `EndpointUnavailableError` and the dead-endpoint cache existed since Phase 1 but nothing ever marked an endpoint dead, so the Section 11 "degrade rather than erroring repeatedly" behavior was unwired. `runTool` now detects removed-endpoint responses (`looksLikeRemovedEndpoint`), records them in the capability registry, and short-circuits later calls to that tool for that user; verified end to end (410 probed exactly once). Also added: direct `DbTokenProvider` tests (proactive refresh in the 60s buffer, refresh-token rotation persistence, reconnect guidance on failure) and tool-level tests for the playlist mutations, which previously had none. Vitest workers capped at 2 with 60s budgets because ~20 suites each boot a PGlite instance and unbounded parallelism caused flaky hook timeouts on the dev machine.
 - `2026-07-05` Replaced `@neondatabase/serverless` with plain `pg` + `drizzle-orm/node-postgres`. Render runs a long-lived Node process, not an edge runtime, and Neon speaks standard Postgres with TLS, so the serverless driver adds complexity without benefit. Tests use PGlite (in-memory Postgres) to apply real migrations without a network database.
 
 ---
