@@ -647,23 +647,23 @@ Update markers as you go. A phase is done only when every item is `[x]` and its 
 - **Acceptance:** test suite green; error paths covered.
 
 ### Phase 11: Deployment
-- [ ] Deploy to Render (or Fly/Railway) with a public HTTPS URL
-- [ ] Neon DB connected, migrations run on deploy
-- [ ] All env vars set in the host, none in the repo
-- [ ] `SPOTIFY_REDIRECT_URI` registered in the Spotify dashboard
-- [ ] Health check green in production
+- [!] Deploy to Render (or Fly/Railway) with a public HTTPS URL
+- [!] Neon DB connected, migrations run on deploy
+- [!] All env vars set in the host, none in the repo
+- [!] `SPOTIFY_REDIRECT_URI` registered in the Spotify dashboard
+- [!] Health check green in production
 - **Acceptance:** the production URL serves metadata and `/healthz`.
 
 ### Phase 12: Connect to Claude and validate end to end
-- [ ] Add the server as a custom connector in Claude by URL
-- [ ] Complete the Spotify OAuth consent
-- [ ] Exercise one tool from each category from an actual Claude conversation
+- [!] Add the server as a custom connector in Claude by URL
+- [!] Complete the Spotify OAuth consent
+- [!] Exercise one tool from each category from an actual Claude conversation
 - **Acceptance:** a fresh user can connect and use every tool with no manual config beyond the consent screen.
 
 ### Phase 13: Docs and polish
-- [ ] `README.md`: what it is, how to connect, tool list, limitations (including the dead audio-features reality)
-- [ ] Note the Extended Quota Mode step for going past ~25 users
-- [ ] Final pass on tool descriptions for model clarity
+- [x] `README.md`: what it is, how to connect, tool list, limitations (including the dead audio-features reality)
+- [x] Note the Extended Quota Mode step for going past ~25 users (README states the corrected 5-user Dev Mode cap)
+- [x] Final pass on tool descriptions for model clarity
 - **Acceptance:** a stranger can read the README and connect without asking you anything.
 
 ---
@@ -689,6 +689,8 @@ The agent appends here. Each entry: date, question or decision, and resolution.
 - `2026-07-06` Phase 8 notes: `summarize_listening_trends` combines two measured sources so it is useful from day one: (a) diffing stored recently-played snapshots across window halves (rising/fading/new artists, Herfindahl concentration change), which needs at least 10 stored plays over 2 capture days before it reports rather than inventing trends; (b) Spotify's own short_term vs long_term top-artists rankings, available immediately. Library-wide scans (`summarize_library`, `find_library_gaps`) are capped at the 500 most recent saves (10 requests) and cached per user; outputs disclose the cap when it truncates. `find_library_gaps` keeps candidate generation on the calling model and does only the measured cross-reference (URI check via `/me/library/contains`, name check against saved-track artists). The artist-genres density question (open TODO above) still needs real account data; moved to Phase 12 validation.
 - `2026-07-06` Phase 9 notes: most of the phase was built early (cache module in Phase 4, cache-first catalog/playlist/library-scan reads in Phases 5 and 8, fan-out caps with truncation notes in Phases 5 and 8, bounded 429 backoff in Phase 1). The gap this phase closed: mutations did not invalidate what they made stale, so `add/remove/reorder` playlist tools now delete the cached playlist items and `save_items`/`remove_items` delete the cached library scan (`Cache` gained `delete`, shared key builders in `cacheKeys`). Verified by tests: repeated reads hit cache once, mutation then re-read refetches, TTL expiry and sweep semantics, and a concurrent burst of 429s backs off per Retry-After and recovers within bounded attempts.
 - `2026-07-06` Phase 10 audit found and fixed a real gap, not just missing tests: `EndpointUnavailableError` and the dead-endpoint cache existed since Phase 1 but nothing ever marked an endpoint dead, so the Section 11 "degrade rather than erroring repeatedly" behavior was unwired. `runTool` now detects removed-endpoint responses (`looksLikeRemovedEndpoint`), records them in the capability registry, and short-circuits later calls to that tool for that user; verified end to end (410 probed exactly once). Also added: direct `DbTokenProvider` tests (proactive refresh in the 60s buffer, refresh-token rotation persistence, reconnect guidance on failure) and tool-level tests for the playlist mutations, which previously had none. Vitest workers capped at 2 with 60s budgets because ~20 suites each boot a PGlite instance and unbounded parallelism caused flaky hook timeouts on the dev machine.
+- `2026-07-06` Phases 11 and 12 are BLOCKED on owner-only resources, not on code: the Spotify developer app (client id/secret, registered redirect URI, Development Mode user allowlist), the Neon database, the Render service with production env vars, and the Claude connector consent all require the owner's accounts. Everything the code side needs is ready: migrations are generated and verified, `npm ci && npm run build && npm run db:migrate` then `npm start` is the documented deploy sequence, and `/healthz` plus the well-known metadata endpoints are live at boot. Phase 13 was completed out of order since it has no dependency on deployment; the deviation is confined to documentation.
+- `2026-07-06` Phase 13: README written (connect flow, grouped tool list, limitations including the dead audio-features reality and the not-yet-determined premium state, self-hosting steps, corrected 5-user Dev Mode cap with the Extended Quota Mode pointer). Final tool-description pass found no changes needed: every description already states its requirements (Premium, active device), degradation behavior, caps, and which outputs are measured vs left to model inference.
 - `2026-07-05` Replaced `@neondatabase/serverless` with plain `pg` + `drizzle-orm/node-postgres`. Render runs a long-lived Node process, not an edge runtime, and Neon speaks standard Postgres with TLS, so the serverless driver adds complexity without benefit. Tests use PGlite (in-memory Postgres) to apply real migrations without a network database.
 
 ---
