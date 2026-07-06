@@ -4,6 +4,7 @@ import { registerContextTools } from "./context.js";
 import { registerSearchTools } from "./search.js";
 import { registerInfoTools } from "./info.js";
 import { registerPlaylistTools } from "./playlists.js";
+import { registerPlaybackTools } from "./playback.js";
 
 /** Central tool registry; one module per Section 8 tool group. */
 export function registerAllTools(server: McpServer, ctx: ToolContext): void {
@@ -11,4 +12,5 @@ export function registerAllTools(server: McpServer, ctx: ToolContext): void {
   registerSearchTools(server, ctx);
   registerInfoTools(server, ctx);
   registerPlaylistTools(server, ctx);
+  registerPlaybackTools(server, ctx);
 }

@@ -613,10 +613,10 @@ Update markers as you go. A phase is done only when every item is `[x]` and its 
 - **Acceptance:** each tool returns compact, correct data against a real account.
 
 ### Phase 6: Playback tools with graceful degradation
-- [ ] `get_playback_state`, `list_devices`
-- [ ] `control_playback` (play/pause/next/previous/seek/volume)
-- [ ] `queue_tracks`, `transfer_playback`
-- [ ] No-device and non-Premium paths return friendly guidance, not raw errors
+- [x] `get_playback_state`, `list_devices`
+- [x] `control_playback` (play/pause/next/previous/seek/volume)
+- [x] `queue_tracks`, `transfer_playback`
+- [x] No-device and non-Premium paths return friendly guidance, not raw errors
 - **Acceptance:** playback works on a Premium account with an active device; on a free account or with no device, tools respond helpfully.
 
 ### Phase 7: Library and history tools
