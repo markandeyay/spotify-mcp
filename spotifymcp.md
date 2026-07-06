@@ -582,10 +582,10 @@ Update markers as you go. A phase is done only when every item is `[x]` and its 
 - **Acceptance:** with a manually pasted valid token, the client can fetch `/me`, search, and read a playlist, and correctly reports premium and device status.
 
 ### Phase 2: Data layer and encryption
-- [ ] `db/schema.ts` for all tables in Section 5
-- [ ] Drizzle migrations generated and applied to Neon
-- [ ] `crypto/tokens.ts`: AES-256-GCM encrypt/decrypt with round-trip unit tests
-- [ ] Token read/write helpers that always encrypt at rest
+- [x] `db/schema.ts` for all tables in Section 5
+- [~] Drizzle migrations generated and applied to Neon (generated and verified against fresh in-memory Postgres; applying to Neon happens in Phase 11 when DATABASE_URL exists)
+- [x] `crypto/tokens.ts`: AES-256-GCM encrypt/decrypt with round-trip unit tests
+- [x] Token read/write helpers that always encrypt at rest
 - **Acceptance:** tokens round-trip through encryption; migrations apply cleanly to a fresh DB.
 
 ### Phase 3: OAuth broker
