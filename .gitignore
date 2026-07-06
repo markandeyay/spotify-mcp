@@ -1,0 +1,14 @@
+# secrets: never commit real environment values
+.env
+.env.local
+.env.*.local
+
+# build output
+dist/
+
+# dependencies
+node_modules/
+
+# logs and misc
+*.log
+coverage/
