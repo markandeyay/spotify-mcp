@@ -583,7 +583,7 @@ Update markers as you go. A phase is done only when every item is `[x]` and its 
 
 ### Phase 2: Data layer and encryption
 - [x] `db/schema.ts` for all tables in Section 5
-- [~] Drizzle migrations generated and applied to Neon (generated and verified against fresh in-memory Postgres; applying to Neon happens in Phase 11 when DATABASE_URL exists)
+- [x] Drizzle migrations generated and applied to Neon (verified against fresh in-memory Postgres during the build; applied to the production Neon database in Phase 11)
 - [x] `crypto/tokens.ts`: AES-256-GCM encrypt/decrypt with round-trip unit tests
 - [x] Token read/write helpers that always encrypt at rest
 - **Acceptance:** tokens round-trip through encryption; migrations apply cleanly to a fresh DB.
@@ -647,17 +647,17 @@ Update markers as you go. A phase is done only when every item is `[x]` and its 
 - **Acceptance:** test suite green; error paths covered.
 
 ### Phase 11: Deployment
-- [!] Deploy to Render (or Fly/Railway) with a public HTTPS URL
-- [!] Neon DB connected, migrations run on deploy
-- [!] All env vars set in the host, none in the repo
-- [!] `SPOTIFY_REDIRECT_URI` registered in the Spotify dashboard
-- [!] Health check green in production
+- [x] Deploy to Render (or Fly/Railway) with a public HTTPS URL
+- [x] Neon DB connected, migrations run on deploy
+- [x] All env vars set in the host, none in the repo
+- [x] `SPOTIFY_REDIRECT_URI` registered in the Spotify dashboard
+- [x] Health check green in production
 - **Acceptance:** the production URL serves metadata and `/healthz`.
 
 ### Phase 12: Connect to Claude and validate end to end
-- [!] Add the server as a custom connector in Claude by URL
-- [!] Complete the Spotify OAuth consent
-- [!] Exercise one tool from each category from an actual Claude conversation
+- [x] Add the server as a custom connector in Claude by URL
+- [x] Complete the Spotify OAuth consent
+- [x] Exercise one tool from each category from an actual Claude conversation
 - **Acceptance:** a fresh user can connect and use every tool with no manual config beyond the consent screen.
 
 ### Phase 13: Docs and polish
@@ -692,6 +692,7 @@ The agent appends here. Each entry: date, question or decision, and resolution.
 - `2026-07-06` Phases 11 and 12 are BLOCKED on owner-only resources, not on code: the Spotify developer app (client id/secret, registered redirect URI, Development Mode user allowlist), the Neon database, the Render service with production env vars, and the Claude connector consent all require the owner's accounts. Everything the code side needs is ready: migrations are generated and verified, `npm ci && npm run build && npm run db:migrate` then `npm start` is the documented deploy sequence, and `/healthz` plus the well-known metadata endpoints are live at boot. Phase 13 was completed out of order since it has no dependency on deployment; the deviation is confined to documentation.
 - `2026-07-06` Phase 13: README written (connect flow, grouped tool list, limitations including the dead audio-features reality and the not-yet-determined premium state, self-hosting steps, corrected 5-user Dev Mode cap with the Extended Quota Mode pointer). Final tool-description pass found no changes needed: every description already states its requirements (Premium, active device), degradation behavior, caps, and which outputs are measured vs left to model inference.
 - `2026-07-05` Replaced `@neondatabase/serverless` with plain `pg` + `drizzle-orm/node-postgres`. Render runs a long-lived Node process, not an edge runtime, and Neon speaks standard Postgres with TLS, so the serverless driver adds complexity without benefit. Tests use PGlite (in-memory Postgres) to apply real migrations without a network database.
+- `2026-07-06` Phases 11 and 12 UNBLOCKED and completed. Production is live at `https://spotify-mcp-u1c9.onrender.com` (Render web service, Neon Postgres, all env vars host-side, health check and both well-known metadata endpoints verified green, `/mcp` returns the correct 401 challenge unauthenticated). Two deployment findings worth recording: (a) the documented build command needed `npm ci --include=dev` because Render sets `NODE_ENV=production`, which makes npm omit the devDependencies that the build itself needs (typescript, @types/*, drizzle-kit); (b) the Claude connector URL must include the `/mcp` path. OAuth discovery lives at the domain root, so a bare-domain connector URL completes the whole login flow and then fails the MCP handshake with a misleading "no MCP server found" error. End-to-end validation done from a real Claude conversation: OAuth consent, `get_initial_context`, and at least one tool per category, confirmed by the owner.
 
 ---
 
